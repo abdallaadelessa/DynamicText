@@ -16,8 +16,8 @@ import rx.schedulers.Schedulers;
  */
 
 public class DynamicTextManager {
-    private boolean useMemoryCache = false;
     private static DynamicTextManager dynamicTextManager;
+    private boolean useMemoryCache = false;
     private Map<String, DynamicTextLoader> dynamicTextLoaderMap;
     private DynamicTextCache dynamicTextCache;
     private DynamicTextLoader.Loader defaultLoader;

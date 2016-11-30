@@ -77,7 +77,7 @@ public class DynamicTextLoader {
 
     public boolean stop(String tag) {
         boolean isStopped = true;
-        if(tag == null || dynamicTextListenersMap.isEmpty() || ((dynamicTextListenersMap.size() == 2 || dynamicTextListenersMap.size() == 3) && hasListener(tag))) {
+        if(tag == null || dynamicTextListenersMap.isEmpty()) {
             clearDynamicTextListeners();
             unSubscribe();
         }
