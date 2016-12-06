@@ -2,13 +2,13 @@ package com.abdallaadelessa.android.dynamictext;
 
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
+import rx.Subscriber;
 import rx.schedulers.Schedulers;
 
 /**
@@ -16,6 +16,7 @@ import rx.schedulers.Schedulers;
  */
 
 public class DynamicTextManager {
+    public static final String TAG_DYNAMIC_TEXT_MANAGER = "DynamicTextManager";
     private static DynamicTextManager dynamicTextManager;
     private boolean useMemoryCache = false;
     private Map<String, DynamicTextLoader> dynamicTextLoaderMap;
@@ -34,63 +35,37 @@ public class DynamicTextManager {
         dynamicTextLoaderMap = Collections.synchronizedMap(new HashMap<String, DynamicTextLoader>());
         defaultLoader = new DynamicTextLoader.Loader() {
             @Override
-            public Observable<String> loadTextByKey(String key) {
-                return Observable.just(key).delay(3, TimeUnit.SECONDS).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.newThread());
+            public Observable<String> loadTextByKey(final String key) {
+                Observable<String> stringObservable = Observable.create(new Observable.OnSubscribe<String>() {
+                    @Override
+                    public void call(Subscriber<? super String> subscriber) {
+                        subscriber.onNext(key);
+                        subscriber.onCompleted();
+                    }
+                }).subscribeOn(Schedulers.newThread());
+                // stringObservable = stringObservable.delay(3, TimeUnit.SECONDS);
+                return stringObservable;
             }
         };
     }
 
     // ----------------------->
 
-    private DynamicTextLoader.Listener getManagerListener(final String key) {
-        return new DynamicTextLoader.Listener() {
-            @Override
-            public void onTextLoaded(String text) {
-                dynamicTextLoaderMap.remove(key);
-                dynamicTextCache.add(key, text);
-            }
-
-            @Override
-            public void onTextFailure(Throwable throwable) {
-                dynamicTextLoaderMap.remove(key);
-            }
-        };
-    }
-
-    private void getFromMemoryCache(String key, TextView textView, DynamicTextLoader.Listener listener) {
+    private void getFromMemoryCache(String key, DynamicTextLoader.Listener listener) {
         String text = dynamicTextCache.get(key);
-        if(textView != null) {
-            textView.setText(text);
-        }
         if(listener != null) {
             listener.onTextLoaded(text);
         }
     }
 
-    private void getFromDisk(String key, DynamicTextLoader.Loader loader, final TextView textView, String tag, DynamicTextLoader.Listener listener) {
+    private void getFromLoader(String key, DynamicTextLoader.Loader loader, String tag, DynamicTextLoader.Listener listener) {
         if(dynamicTextLoaderMap.containsKey(key)) {
             DynamicTextLoader dynamicTextLoader = dynamicTextLoaderMap.get(key);
-            if(textView != null) {
-                dynamicTextLoader.addDynamicTextListener(String.valueOf(textView.getId()), new DynamicTextLoader.Listener() {
-                    @Override
-                    public void onTextLoaded(String text) {
-                        textView.setText(text);
-                    }
-                });
-            }
             dynamicTextLoader.addDynamicTextListener(tag, listener);
         }
         else {
-            DynamicTextLoader dynamicTextLoader = new DynamicTextLoader(key, loader == null ? defaultLoader : loader);
-            dynamicTextLoader.addDynamicTextListener(String.valueOf(System.currentTimeMillis()), getManagerListener(key));
-            if(textView != null) {
-                dynamicTextLoader.addDynamicTextListener(String.valueOf(textView.getId()), new DynamicTextLoader.Listener() {
-                    @Override
-                    public void onTextLoaded(String text) {
-                        textView.setText(text);
-                    }
-                });
-            }
+            DynamicTextLoader dynamicTextLoader = createNewDynamicTextLoader(key, loader);
+            dynamicTextLoader.addDynamicTextListener(TAG_DYNAMIC_TEXT_MANAGER, getManagerListener(key));
             dynamicTextLoader.addDynamicTextListener(tag, listener);
             dynamicTextLoaderMap.put(key, dynamicTextLoader);
             dynamicTextLoader.getStringAsync();
@@ -99,33 +74,49 @@ public class DynamicTextManager {
 
     // ----------------------->
 
-    public void getStringAsync(final String key, final DynamicTextLoader.Loader loader, final TextView textView, final String tag, final DynamicTextLoader.Listener listener) {
+    public final void getStringAsync(final String key, final DynamicTextLoader.Loader loader, final String tag, final DynamicTextLoader.Listener listener) {
         if(dynamicTextCache.containsKey(key) && useMemoryCache) {
             // Get From Memory Cache
-            getFromMemoryCache(key, textView, listener);
+            getFromMemoryCache(key, listener);
         }
         else {
             // Get From Disk
-            getFromDisk(key, loader, textView, tag, listener);
+            getFromLoader(key, loader, tag, listener);
         }
     }
 
-    public void getStringAsync(final String key, final TextView textView) {
-        getStringAsync(key, null, textView, null, null);
+    public void getStringAsync(final String key, String tag, final DynamicTextLoader.Listener listener) {
+        getStringAsync(key, null, tag, listener);
     }
 
-    public void getStringAsync(final String key, String tag, final DynamicTextLoader.Listener listener) {
-        getStringAsync(key, null, null, tag, listener);
+    public void getStringAsync(final String key, final TextView textView) {
+        if(textView == null) return;
+        final WeakReference<TextView> textViewWeakReference = new WeakReference<>(textView);
+        getStringAsync(key, null, String.valueOf(textViewWeakReference.get().getId()), new DynamicTextLoader.Listener() {
+            @Override
+            public void onTextLoaded(String text) {
+                super.onTextLoaded(text);
+                if(textViewWeakReference.get() != null) {
+                    textViewWeakReference.get().setText(text);
+                }
+            }
+        });
     }
 
     //--->
 
     public String getString(String key, DynamicTextLoader.Loader loader) {
-        return new DynamicTextLoader(key, loader == null ? defaultLoader : loader).getString();
+        return createNewDynamicTextLoader(key, loader).getString();
     }
 
     public String getString(String key) {
         return new DynamicTextLoader(key, defaultLoader).getString();
+    }
+
+    //--->
+
+    public Observable<String> getStringAsObservable(String key, DynamicTextLoader.Loader loader) {
+        return createNewDynamicTextLoader(key, loader).getStringAsObservable();
     }
 
     // ----------------------->
@@ -162,4 +153,26 @@ public class DynamicTextManager {
         }
 
     }
+
+    // ----------------------->
+
+    private DynamicTextLoader createNewDynamicTextLoader(String key, DynamicTextLoader.Loader loader) {
+        return new DynamicTextLoader(key, loader == null ? defaultLoader : loader);
+    }
+
+    private DynamicTextLoader.Listener getManagerListener(final String key) {
+        return new DynamicTextLoader.Listener() {
+            @Override
+            public void onTextLoaded(String text) {
+                dynamicTextLoaderMap.remove(key);
+                dynamicTextCache.add(key, text);
+            }
+
+            @Override
+            public void onTextFailure(Throwable throwable) {
+                dynamicTextLoaderMap.remove(key);
+            }
+        };
+    }
+
 }

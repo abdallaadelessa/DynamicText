@@ -6,6 +6,7 @@ import java.util.Map;
 
 import rx.Observable;
 import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 
 /**
@@ -40,19 +41,19 @@ public class DynamicTextLoader {
     }
 
     public String getString() {
-        unSubscribe();
         String text = null;
         try {
             text = loader.loadTextByKey(key).toBlocking().firstOrDefault(null);
         }
         catch(Exception e) {
+            e.printStackTrace();
         }
         return text;
     }
 
     public void getStringAsync() {
         unSubscribe();
-        subscription = loader.loadTextByKey(key).subscribe(new Action1<String>() {
+        subscription = getStringAsObservable().subscribe(new Action1<String>() {
             @Override
             public void call(String text) {
                 if(dynamicTextListenersMap != null && !dynamicTextListenersMap.isEmpty()) {
@@ -75,9 +76,15 @@ public class DynamicTextLoader {
         });
     }
 
+    public Observable<String> getStringAsObservable() {
+        Observable<String> observable = loader.loadTextByKey(key);
+        observable = observable.observeOn(AndroidSchedulers.mainThread());
+        return observable;
+    }
+
     public boolean stop(String tag) {
         boolean isStopped = true;
-        if(tag == null || dynamicTextListenersMap.isEmpty()) {
+        if(tag == null || dynamicTextListenersMap.size() <= 2) {
             clearDynamicTextListeners();
             unSubscribe();
         }
