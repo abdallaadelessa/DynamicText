@@ -5,7 +5,9 @@ import android.widget.TextView;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -43,7 +45,7 @@ public class DynamicTextManager {
                         subscriber.onCompleted();
                     }
                 }).subscribeOn(Schedulers.newThread());
-                // stringObservable = stringObservable.delay(3, TimeUnit.SECONDS);
+                //stringObservable = stringObservable.delay(3, TimeUnit.SECONDS);
                 return stringObservable;
             }
         };
@@ -74,7 +76,7 @@ public class DynamicTextManager {
 
     // ----------------------->
 
-    public final void getStringAsync(final String key, final DynamicTextLoader.Loader loader, final String tag, final DynamicTextLoader.Listener listener) {
+    public void getStringAsync(final String key, final DynamicTextLoader.Loader loader, final String tag, final DynamicTextLoader.Listener listener) {
         if(dynamicTextCache.containsKey(key) && useMemoryCache) {
             // Get From Memory Cache
             getFromMemoryCache(key, listener);
@@ -119,6 +121,10 @@ public class DynamicTextManager {
         return createNewDynamicTextLoader(key, loader).getStringAsObservable();
     }
 
+    public Observable<String> getStringAsObservable(String key) {
+        return createNewDynamicTextLoader(key, null).getStringAsObservable();
+    }
+
     // ----------------------->
 
     public void setUseMemoryCache(boolean useMemoryCache) {
@@ -147,11 +153,18 @@ public class DynamicTextManager {
 
     public void stopAll() {
         if(dynamicTextLoaderMap != null && !dynamicTextLoaderMap.isEmpty()) {
-            for(String key : dynamicTextLoaderMap.keySet()) {
-                stop(key, null);
+            Iterator entries = dynamicTextLoaderMap.entrySet().iterator();
+            while(entries.hasNext()) {
+                Map.Entry thisEntry = (Map.Entry) entries.next();
+                String key = (String) thisEntry.getKey();
+                if(key != null) {
+                    DynamicTextLoader dynamicTextLoader = dynamicTextLoaderMap.get(key);
+                    if(dynamicTextLoader != null && dynamicTextLoader.stop(null)) {
+                        entries.remove();
+                    }
+                }
             }
         }
-
     }
 
     // ----------------------->
