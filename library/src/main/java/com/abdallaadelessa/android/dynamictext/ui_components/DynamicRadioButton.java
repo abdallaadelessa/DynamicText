@@ -7,6 +7,8 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.widget.RadioButton;
 
+import com.abdallaadelessa.android.dynamictext.DynamicErrorHandler;
+import com.abdallaadelessa.android.dynamictext.DynamicResources;
 import com.abdallaadelessa.android.dynamictext.DynamicTextLoader;
 import com.abdallaadelessa.android.dynamictext.DynamicTextManager;
 import com.abdallaadelessa.android.dynamictext.R;
@@ -16,9 +18,7 @@ import com.abdallaadelessa.android.dynamictext.R;
  */
 
 public class DynamicRadioButton extends RadioButton {
-    private static final String TAG = "TAG";
-    private static final String DEFAULT_LOADING_TEXT = "...";
-    private String textKey;
+    private DynamicResources resources;
 
     public DynamicRadioButton(Context context) {
         super(context);
@@ -35,9 +35,11 @@ public class DynamicRadioButton extends RadioButton {
     }
 
     @Override
-    protected void onDetachedFromWindow() {
-        DynamicTextManager.getInstance().stop(textKey, String.valueOf(getId()));
-        super.onDetachedFromWindow();
+    public DynamicResources getResources() {
+        if(resources == null) {
+            resources = new DynamicResources(super.getResources().getAssets(), super.getResources().getDisplayMetrics(), super.getResources().getConfiguration());
+        }
+        return resources;
     }
 
     // ----------------------->
@@ -58,27 +60,14 @@ public class DynamicRadioButton extends RadioButton {
             a.recycle();
         }
         catch(Exception e) {
-            onError(e);
+            DynamicErrorHandler.onError(e);
         }
     }
 
     public void setDynamicText(final String key) {
-        this.textKey = key;
-        showLoading(true);
-        DynamicTextManager.getInstance().getStringAsync(key, this);
+        setText(getResources().getString(key));
     }
 
     // ----------------------->
 
-    private void showLoading(boolean show) {
-        if(show) {
-            setText(DEFAULT_LOADING_TEXT);
-        }
-    }
-
-    private void onError(Throwable throwable) {
-        Log.e(TAG, "Error", throwable);
-    }
-
-    // ----------------------->
 }

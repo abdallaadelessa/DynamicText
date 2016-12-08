@@ -6,9 +6,9 @@ import rx.Observable;
  * Created by abdullah on 11/30/16.
  */
 
-public class XmlLoader implements DynamicTextLoader.Loader {
+public class XmlParser implements DynamicTextLoader.Parser {
     @Override
-    public Observable<String> loadTextByKey(String key) {
+    public Observable<String> getValueByKey(String key) {
         return null;
     }
 }

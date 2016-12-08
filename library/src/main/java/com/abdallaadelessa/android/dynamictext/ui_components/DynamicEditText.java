@@ -7,6 +7,8 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.widget.EditText;
 
+import com.abdallaadelessa.android.dynamictext.DynamicErrorHandler;
+import com.abdallaadelessa.android.dynamictext.DynamicResources;
 import com.abdallaadelessa.android.dynamictext.DynamicTextLoader;
 import com.abdallaadelessa.android.dynamictext.DynamicTextManager;
 import com.abdallaadelessa.android.dynamictext.R;
@@ -16,9 +18,7 @@ import com.abdallaadelessa.android.dynamictext.R;
  */
 
 public class DynamicEditText extends EditText {
-    private static final String TAG = "TAG";
-    private String textKey;
-    private String hintKey;
+    private DynamicResources resources;
 
     public DynamicEditText(Context context) {
         super(context);
@@ -35,10 +35,11 @@ public class DynamicEditText extends EditText {
     }
 
     @Override
-    protected void onDetachedFromWindow() {
-        DynamicTextManager.getInstance().stop(textKey, String.valueOf(getId()));
-        DynamicTextManager.getInstance().stop(hintKey, String.valueOf(getId()));
-        super.onDetachedFromWindow();
+    public DynamicResources getResources() {
+        if(resources == null) {
+            resources = new DynamicResources(super.getResources().getAssets(), super.getResources().getDisplayMetrics(), super.getResources().getConfiguration());
+        }
+        return resources;
     }
 
     // ----------------------->
@@ -63,29 +64,16 @@ public class DynamicEditText extends EditText {
             a.recycle();
         }
         catch(Exception e) {
-            onError(e);
+            DynamicErrorHandler.onError(e);
         }
     }
 
     public void setDynamicText(final String key) {
-        if(TextUtils.isEmpty(key)) return;
-        this.textKey = key;
-        DynamicTextManager.getInstance().getStringAsync(key, this);
+        setText(getResources().getString(key));
     }
 
     public void setDynamicHint(final String key) {
-        if(TextUtils.isEmpty(key)) return;
-        this.hintKey = key;
-        DynamicTextManager.getInstance().getStringAsync(key, String.valueOf(getId()), new DynamicTextLoader.Listener() {
-            @Override
-            public void onTextLoaded(String text) {
-                setHint(text);
-            }
-        });
-    }
-
-    private void onError(Throwable throwable) {
-        Log.e(TAG, "Error", throwable);
+        setHint(getResources().getString(key));
     }
 
     // ----------------------->

@@ -15,7 +15,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        dynamicText:text="Loaded From XML"
+        dynamicText:text="Key From XML"
     />
     <com.abdallaadelessa.android.dynamictext.ui_components.DynamicEditText
         android:id="@+id/etext"
@@ -24,7 +24,7 @@
         android:layout_below="@+id/tvLabel"
         android:layout_centerInParent="true"
         android:layout_marginTop="30dp"
-        dynamicText:hint="Loaded From XML"
+        dynamicText:hint="Key From XML"
     />
     <Button
         android:id="@+id/btnLoad"

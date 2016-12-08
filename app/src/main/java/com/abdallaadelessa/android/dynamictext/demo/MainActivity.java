@@ -6,10 +6,11 @@ import android.view.View;
 import android.widget.Button;
 
 import com.abdallaadelessa.android.dynamictext.DynamicTextManager;
+import com.abdallaadelessa.android.dynamictext.ui_components.DynamicActivity;
 import com.abdallaadelessa.android.dynamictext.ui_components.DynamicEditText;
 import com.abdallaadelessa.android.dynamictext.ui_components.DynamicTextView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends DynamicActivity {
     DynamicTextView tvLabel;
     DynamicEditText etext;
     Button btnLoad;
@@ -24,10 +25,9 @@ public class MainActivity extends AppCompatActivity {
         btnLoad.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                final String key = "Loaded From Code";
-                tvLabel.setDynamicText(key);
-                etext.setDynamicText(key);
-                //DynamicTextManager.getInstance().stopAll();
+                final String key = "Key From Code";
+                tvLabel.setText(getResources().getString(key));
+                etext.setText(getBaseContext().getResources().getString(key));
             }
         });
     }
