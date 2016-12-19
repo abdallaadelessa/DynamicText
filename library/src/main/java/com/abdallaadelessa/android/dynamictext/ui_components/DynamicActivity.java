@@ -29,11 +29,6 @@ public class DynamicActivity extends AppCompatActivity {
     }
 
     @Override
-    public DynamicContextWrapper getApplicationContext() {
-        return (DynamicContextWrapper) super.getApplicationContext();
-    }
-
-    @Override
     public DynamicResources getResources() {
         return (DynamicResources) super.getResources();
     }
